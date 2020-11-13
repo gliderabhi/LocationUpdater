@@ -1,9 +1,10 @@
-package com.example.locationupdater
+package com.example.locationupdater.geo
 
 import android.app.PendingIntent
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import com.example.locationupdater.broadcasts.GeoFenceBroadCastReceiver
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofenceStatusCodes
@@ -16,7 +17,7 @@ class GeofenceHelperClass(base: Context?) : ContextWrapper(base){
     public fun getGeoFencingRequest(geofence: Geofence) : GeofencingRequest? {
         return GeofencingRequest.Builder()
             .addGeofence(geofence)
-            .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+            .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER )
             .build()
     }
 
@@ -35,7 +36,7 @@ class GeofenceHelperClass(base: Context?) : ContextWrapper(base){
     }
 
     public fun getPendingIntents() : PendingIntent {
-        val intent = Intent(this,GeoFenceBroadCastReceiver::class.java)
+        val intent = Intent(this, GeoFenceBroadCastReceiver::class.java)
         pendingIntent = PendingIntent.getBroadcast(this, 2607,intent,
             PendingIntent.FLAG_UPDATE_CURRENT)
         return pendingIntent

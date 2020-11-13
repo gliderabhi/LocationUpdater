@@ -194,4 +194,9 @@ The terms used in this Privacy Policy have the same meanings as in our Terms and
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
     <string name="shareFiledName">LocationAvailableOrNotSharedPrefName</string>
     <string name="location_key">location key</string>
+    <string name="sample_service_name">locationService</string>
+    <string name="sample_service_description">serviceDescription</string>
+    <string name="title_activity_spash_screen">FullscreenActivity</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
 </resources>

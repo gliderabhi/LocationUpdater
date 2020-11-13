@@ -1,13 +1,14 @@
-package com.example.locationupdater
+package com.example.locationupdater.broadcasts
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.location.LocationManager
-import android.provider.Settings.Global.getString
 import android.util.Log
-import android.widget.Toast
+import com.example.locationupdater.activities.MapsActivity
+import com.example.locationupdater.utils.NotificationHelper
+import com.example.locationupdater.utils.addGeoFence
 import com.google.android.gms.maps.model.LatLng
 
 class LocationProviderBroadcastReceiver : BroadcastReceiver() {
@@ -21,6 +22,7 @@ class LocationProviderBroadcastReceiver : BroadcastReceiver() {
     var notifiOn = true
     lateinit var sharedPreferences : SharedPreferences
     var locationOnOrOff = false
+
 
     override fun onReceive(context: Context, intent: Intent) {
         Log.d(TAG, "onReceive: entered")

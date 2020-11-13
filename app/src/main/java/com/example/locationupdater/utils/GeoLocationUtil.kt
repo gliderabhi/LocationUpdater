@@ -1,4 +1,4 @@
-package com.example.locationupdater
+package com.example.locationupdater.utils
 
 import android.Manifest
 import android.app.Activity

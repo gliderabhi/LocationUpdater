@@ -1,10 +1,12 @@
-package com.example.locationupdater
+package com.example.locationupdater.broadcasts
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
 import android.widget.Toast
+import com.example.locationupdater.activities.MapsActivity
+import com.example.locationupdater.utils.NotificationHelper
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingEvent
 

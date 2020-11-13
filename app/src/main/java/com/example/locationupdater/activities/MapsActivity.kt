@@ -1,4 +1,4 @@
-package com.example.locationupdater
+package com.example.locationupdater.activities
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -9,11 +9,10 @@ import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.LocationManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.util.Log
+import android.view.View
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.Toast
@@ -21,6 +20,10 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.locationupdater.geo.GeofenceHelperClass
+import com.example.locationupdater.service.KeepAliveBroadcastService
+import com.example.locationupdater.broadcasts.LocationProviderBroadcastReceiver
+import com.example.locationupdater.R
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
@@ -31,6 +34,7 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.CircleOptions
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLongClickListener {
 
@@ -41,7 +45,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
     val BACKGROUND_LOCATION_ACCESS_CODE= 12
     val locationProviderBroadcastReceiver : LocationProviderBroadcastReceiver = LocationProviderBroadcastReceiver()
     val name : String= "SharePrefName"
-
+    private lateinit var fabCurrentLocation : FloatingActionButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,6 +57,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
 
         geofencingClient = LocationServices.getGeofencingClient(this)
         geofenceHelperClass = GeofenceHelperClass(this)
+        
+        startService(Intent(applicationContext, KeepAliveBroadcastService::class.java))
+
+        fabCurrentLocation = findViewById<FloatingActionButton>(R.id.currentLocationButton)
+
     }
 
     /**
@@ -64,16 +73,49 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
      * it inside the SupportMapFragment. This method will only be triggered once the user has
      * installed Google Play services and returned to the app.
      */
+    @SuppressLint("MissingPermission")
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
-        // Add a marker in Sydney and move the camera
-        val sydney = LatLng(23.0, 87.0)
+        // Add a marker in my current location from shared pref and move the camera
+        val sharedPreferences = getSharedPreferences(name, Context.MODE_PRIVATE)
+        var lat = sharedPreferences.getFloat("latitude", 23f)
+        var long = sharedPreferences.getFloat("longitude", 87.5f)
+        var sydney = LatLng(lat.toDouble(), long.toDouble())
         mMap.addMarker(MarkerOptions().position(sydney).title("Marker in India"))
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sydney, 16f))
-        enableUserLocation()
 
+        //floating button for current location
+        fabCurrentLocation.setOnClickListener(View.OnClickListener {
+            val manager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            val perms = manager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+
+            if (perms) {
+                val loc = mMap.myLocation
+                Toast.makeText(applicationContext, "${loc.latitude} + ${loc.longitude}", Toast.LENGTH_SHORT).show()
+                sydney = LatLng(loc.latitude, loc.longitude)
+                /*mMap.addMarker(
+                    MarkerOptions().position(sydney)
+                        .title("Marker in India")
+                )*/
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sydney, 16f))
+            } else {
+                enablegps()
+                //mMap.addMarker(MarkerOptions().position(sydney).title("Marker in India"))
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sydney, 16f))
+
+            }
+        })
+
+        showPreviousSetData()
+        enableUserLocation()
+        mMap.uiSettings.isMyLocationButtonEnabled = false
+        //insert geofences and some ui changes
         mMap.setOnMapLongClickListener(this)
+    }
+
+    private fun showPreviousSetData() {
+
     }
 
     private fun enableUserLocation () {
@@ -241,7 +283,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
                     Toast.LENGTH_SHORT
                 )
                     .show()
-                Log.e(Companion.TAG, errorMessage)
+                Log.e(TAG, errorMessage)
 
             }
         }

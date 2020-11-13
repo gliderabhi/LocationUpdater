@@ -1,9 +1,11 @@
-package com.example.locationupdater
+package com.example.locationupdater.utils
 
 import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
+import com.example.locationupdater.geo.GeofenceHelperClass
+import com.example.locationupdater.activities.MapsActivity
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingClient
 import com.google.android.gms.location.LocationServices

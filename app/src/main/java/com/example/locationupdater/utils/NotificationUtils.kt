@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.example.locationupdater
+package com.example.locationupdater.utils
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -23,19 +23,20 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import java.util.*
+import com.example.locationupdater.R
 
 
 class NotificationHelper(base: Context?) : ContextWrapper(base) {
     private val CHANNEL_NAME = "High priority channel"
     private val CHANNEL_ID = "com.example.notifications$CHANNEL_NAME"
+    private val CHANNEL_ID_INT = 10
     @RequiresApi(api = Build.VERSION_CODES.O)
+
     private fun createChannels() {
         val notificationChannel =
             NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH)
@@ -53,24 +54,27 @@ class NotificationHelper(base: Context?) : ContextWrapper(base) {
         val pendingIntent =
             PendingIntent.getActivity(this, 267, intent, PendingIntent.FLAG_UPDATE_CURRENT)
         val notification =
-            NotificationCompat.Builder(this, CHANNEL_ID) //                .setContentTitle(title)
-                //                .setContentText(body)
+            NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(title)
+                .setContentText(body)
                 .setSmallIcon(R.drawable.ic_tracker)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setStyle(
-                    NotificationCompat.BigTextStyle().setSummaryText("summary")
-                        .setBigContentTitle(title).bigText(body)
+                    NotificationCompat.BigTextStyle().bigText(body)
                 )
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
                 .build()
-        NotificationManagerCompat.from(this).notify(Random().nextInt(), notification)
+        NotificationManagerCompat.from(this).notify(CHANNEL_ID_INT, notification)
     }
 
     companion object {
         private const val TAG = "NotificationHelper"
     }
 
+    fun sendFullScreenNotification() {
+
+    }
     init {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             createChannels()

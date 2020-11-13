@@ -48,17 +48,18 @@ dependencies {
     implementation 'com.google.android.material:material:1.2.1'
     implementation 'androidx.navigation:navigation-fragment-ktx:2.3.1'
     implementation 'androidx.navigation:navigation-ui-ktx:2.3.1'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     testImplementation 'junit:junit:4.13.1'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
     implementation 'com.google.android.gms:play-services-location:17.1.0'
     implementation 'com.google.android.gms:play-services-maps:17.0.0'
-
+    implementation 'com.google.code.gson:gson:2.8.5'
     implementation 'android.arch.lifecycle:extensions:1.1.1'
     compile group: 'com.daimajia.slider', name: 'library', version: '1.1.5'
 //Thanks for using https://jar-download.com
 
-    // Easy Permissions
-    implementation 'pub.devrel:easypermissions:3.0.0'
+    //dexter permissions
+    implementation 'com.karumi:dexter:5.0.0'
 
 }

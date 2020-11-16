@@ -35,8 +35,9 @@ import com.google.android.gms.maps.model.CircleOptions
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlinx.android.synthetic.main.activity_maps.*
 
-class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLongClickListener {
+class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLongClickListener, View.OnClickListener {
 
     private lateinit var mMap: GoogleMap
     private lateinit var geofencingClient: GeofencingClient
@@ -60,19 +61,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
         
         startService(Intent(applicationContext, KeepAliveBroadcastService::class.java))
 
-        fabCurrentLocation = findViewById<FloatingActionButton>(R.id.currentLocationButton)
+        fabCurrentLocation = findViewById(R.id.currentLocationButton)
+        settings.setOnClickListener {
+            //open fragment with transition
 
+        }
     }
 
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
     @SuppressLint("MissingPermission")
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
@@ -83,7 +78,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
         var long = sharedPreferences.getFloat("longitude", 87.5f)
         var sydney = LatLng(lat.toDouble(), long.toDouble())
         mMap.addMarker(MarkerOptions().position(sydney).title("Marker in India"))
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sydney, 16f))
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(sydney, 16f))
 
         //floating button for current location
         fabCurrentLocation.setOnClickListener(View.OnClickListener {
@@ -98,7 +93,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
                     MarkerOptions().position(sydney)
                         .title("Marker in India")
                 )*/
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sydney, 16f))
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(sydney, 16f))
             } else {
                 enablegps()
                 //mMap.addMarker(MarkerOptions().position(sydney).title("Marker in India"))
@@ -408,5 +403,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
         }
 
 
+    }
+
+    override fun onClick(v: View?) {
+        Toast.makeText(applicationContext, "Settings clicked ", Toast.LENGTH_SHORT).show()
     }
 }

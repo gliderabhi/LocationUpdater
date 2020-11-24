@@ -2,28 +2,30 @@ package com.example.locationupdater.activities
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.content.IntentSender
+import android.content.*
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.View
-import android.widget.EditText
-import android.widget.LinearLayout
+import android.view.animation.Animation
+import android.view.animation.AnimationUtils
+import android.widget.FrameLayout
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.locationupdater.R
+import com.example.locationupdater.broadcasts.LocationProviderBroadcastReceiver
+import com.example.locationupdater.dao.GeoFence
+import com.example.locationupdater.firebase.FirebaseTransactions.getAllGeoFences
+import com.example.locationupdater.fragment.SettingsFragment
 import com.example.locationupdater.geo.GeofenceHelperClass
 import com.example.locationupdater.service.KeepAliveBroadcastService
-import com.example.locationupdater.broadcasts.LocationProviderBroadcastReceiver
-import com.example.locationupdater.R
+import com.example.locationupdater.utils.GeoLocationUtil
+import com.example.locationupdater.utils.extension.addCircles
+import com.example.locationupdater.utils.extension.addGeoFence
+import com.example.locationupdater.utils.extension.addMarkers
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
@@ -31,22 +33,29 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.CircleOptions
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.android.synthetic.main.activity_maps.*
+import java.time.LocalDateTime
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLongClickListener, View.OnClickListener {
 
+
+    val TAG  = "MapsActivity"
     private lateinit var mMap: GoogleMap
     private lateinit var geofencingClient: GeofencingClient
     private lateinit var geofenceHelperClass: GeofenceHelperClass
     val FINE_LOCATION_ACCESS_CODE= 10
     val BACKGROUND_LOCATION_ACCESS_CODE= 12
     val locationProviderBroadcastReceiver : LocationProviderBroadcastReceiver = LocationProviderBroadcastReceiver()
-    val name : String= "SharePrefName"
     private lateinit var fabCurrentLocation : FloatingActionButton
+    private lateinit var settings : FloatingActionButton
+    var isFragmentVisible = false
+    private lateinit var sharedPreferences : SharedPreferences
+    private lateinit var viewInAnimation :Animation
+    private lateinit var viewOutAnimation : Animation
+    private var listFences : List<GeoFence> ? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,16 +64,67 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
+        startService(Intent(applicationContext, KeepAliveBroadcastService::class.java))
+        intializeVIew()
+    }
 
+    private fun intializeVIew() {
+        val fragmentHolder = findViewById<FrameLayout>(R.id.fragmentHolder)
+        fabCurrentLocation = findViewById(R.id.currentLocationButton)
+        settings = findViewById(R.id.settings)
+
+        sharedPreferences = getSharedPreferences(getString(R.string.prefName), Context.MODE_PRIVATE)
         geofencingClient = LocationServices.getGeofencingClient(this)
         geofenceHelperClass = GeofenceHelperClass(this)
-        
-        startService(Intent(applicationContext, KeepAliveBroadcastService::class.java))
 
-        fabCurrentLocation = findViewById(R.id.currentLocationButton)
+        //animations for the fragment
+        viewInAnimation = AnimationUtils.loadAnimation(applicationContext, R.anim.fade_in)
+        viewInAnimation.setAnimationListener(object : Animation.AnimationListener {
+
+            override fun onAnimationStart(animation: Animation?) {
+            }
+
+            override fun onAnimationRepeat(animation: Animation?) {
+            }
+
+            override fun onAnimationEnd(animation: Animation?) {
+                fragmentHolder.visibility = View.VISIBLE
+            }
+        })
+        viewOutAnimation = AnimationUtils.loadAnimation(applicationContext, R.anim.fade_out)
+        viewOutAnimation.setAnimationListener(object : Animation.AnimationListener {
+            override fun onAnimationRepeat(animation: Animation?) {
+                //TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+            }
+
+            override fun onAnimationEnd(animation: Animation?) {
+                fragmentHolder.visibility = View.GONE
+            }
+
+            override fun onAnimationStart(animation: Animation?) {
+    //                TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+            }
+
+        })
+
+        //click setting to open or close the fragment
         settings.setOnClickListener {
             //open fragment with transition
+            if (!isFragmentVisible) {
+                supportFragmentManager.beginTransaction().add(
+                    R.id.fragmentHolder,
+                    SettingsFragment()
+                ).commit()
 
+                //animate visibility gone
+                fragmentHolder.startAnimation(viewInAnimation)
+
+            } else {
+                supportFragmentManager.beginTransaction().remove(SettingsFragment()).commit()
+                fragmentHolder.startAnimation(viewOutAnimation)
+            }
+
+            isFragmentVisible = !isFragmentVisible
         }
     }
 
@@ -73,96 +133,73 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
         mMap = googleMap
 
         // Add a marker in my current location from shared pref and move the camera
-        val sharedPreferences = getSharedPreferences(name, Context.MODE_PRIVATE)
-        var lat = sharedPreferences.getFloat("latitude", 23f)
-        var long = sharedPreferences.getFloat("longitude", 87.5f)
-        var sydney = LatLng(lat.toDouble(), long.toDouble())
-        mMap.addMarker(MarkerOptions().position(sydney).title("Marker in India"))
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(sydney, 16f))
+        val lat = sharedPreferences.getFloat("latitude", 22.793f)
+        val long = sharedPreferences.getFloat("longitude", 86.242f)
+        var myLocation = LatLng(lat.toDouble(), long.toDouble())
+        mMap.addMarker(MarkerOptions().position(myLocation).title("Marker in India"))
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation, 16f))
 
         //floating button for current location
-        fabCurrentLocation.setOnClickListener(View.OnClickListener {
+       /* fabCurrentLocation.setOnClickListener{
             val manager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
             val perms = manager.isProviderEnabled(LocationManager.GPS_PROVIDER)
 
             if (perms) {
                 val loc = mMap.myLocation
-                Toast.makeText(applicationContext, "${loc.latitude} + ${loc.longitude}", Toast.LENGTH_SHORT).show()
-                sydney = LatLng(loc.latitude, loc.longitude)
-                /*mMap.addMarker(
-                    MarkerOptions().position(sydney)
-                        .title("Marker in India")
-                )*/
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(sydney, 16f))
+                Toast.makeText(
+                    applicationContext,
+                    "${loc.latitude} + ${loc.longitude}",
+                    Toast.LENGTH_SHORT
+                ).show()
+                myLocation = LatLng(loc.latitude, loc.longitude)
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation, 16f))
             } else {
                 enablegps()
                 //mMap.addMarker(MarkerOptions().position(sydney).title("Marker in India"))
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sydney, 16f))
+                //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(myLocation, 16f))
 
             }
-        })
+        }
+       */
+        fabCurrentLocation.setOnClickListener{
+            checkPermissions()
+        }
 
-        showPreviousSetData()
-        enableUserLocation()
+        getAllGeoFences(mMap, applicationContext)
+       // enableUserLocation()
         mMap.uiSettings.isMyLocationButtonEnabled = false
         //insert geofences and some ui changes
         mMap.setOnMapLongClickListener(this)
     }
 
-    private fun showPreviousSetData() {
+    @SuppressLint("MissingPermission")
+    private fun checkPermissions() {
+        //only checking once because after permitting user should click the fab again and this will be called again
 
-    }
+        //check if gps is on or off, if off please start it
+        if (GeoLocationUtil.isGpsEnabled(applicationContext)) {
 
-    private fun enableUserLocation () {
-        if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
-                PackageManager.PERMISSION_GRANTED){
-            val manager = applicationContext.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-            val perms = manager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-            if(perms) {
+            //do i have the permissions if not ask
+             if (GeoLocationUtil.hasGpsPermissions(applicationContext)) {
                 mMap.isMyLocationEnabled = true
-            }else{
-               /* val alertDouble = AlertDialog.Builder(this)
-                    .setTitle("Permission for gps")
-                    .setMessage("Please start gps for app to function correctly")
-                    .setPositiveButton(
-                        "OK"
-                    ) { _, _ ->
-                        enablegps()
-                        enableUserLocation()
-                    }
-                    .setNegativeButton("Ignore") { _, _ ->
-                        Toast.makeText(
-                            applicationContext,
-                            "App wont work please allow gps ",
-                            Toast.LENGTH_SHORT
+                val myloc = mMap.myLocation
+                if (myloc != null) {
+                    mMap.animateCamera(
+                        CameraUpdateFactory.newLatLngZoom(
+                            LatLng(
+                                myloc.latitude,
+                                myloc.longitude
+                            ), 16f
                         )
-                            .show()
-                    }
-                alertDouble.show()*/
-                enablegps()
-                //enableUserLocation()
-            }
-        }else {
-            //ask for permission
-            if(ActivityCompat.shouldShowRequestPermissionRationale(
-                    this,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                )){
-                //show user dialog why permission is needed
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                    FINE_LOCATION_ACCESS_CODE
-                )
-            } else {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                    FINE_LOCATION_ACCESS_CODE
-                )
-            }
-        }
+                    )
 
+                }
+            }else {
+                GeoLocationUtil.askForLocationPermission(this, FINE_LOCATION_ACCESS_CODE)
+            }
+        } else {
+            enablegps()
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -172,7 +209,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
         grantResults: IntArray
     ) {
         if(requestCode == FINE_LOCATION_ACCESS_CODE) {
-            if (grantResults.size > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 //we have permission
                 mMap.isMyLocationEnabled = true
             } else {
@@ -182,7 +219,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
                     "Permission not given requesting again ",
                     Toast.LENGTH_SHORT
                 ).show()
-                enableUserLocation()
+                //enableUserLocation()
             }
             if (requestCode == BACKGROUND_LOCATION_ACCESS_CODE) {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -195,7 +232,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
                         "Permission not given requesting again ",
                         Toast.LENGTH_SHORT
                     ).show()
-                    enableUserLocation()
+                    //enableUserLocation()
                 }
             }
         }
@@ -241,11 +278,14 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
     private fun handleLongClick(p0: LatLng?) {
         if (p0 != null) {
             mMap.clear()
-            addMarkers(p0)
-            addCircles(p0, 100.0)
-            addGeoFence(p0, 100f)
-            val sharedPreferences = getSharedPreferences(name, Context.MODE_PRIVATE)
 
+            //this is in the extensions file
+            val radius = sharedPreferences.getFloat(getString(R.string.radius), 10f)
+            addMarkers(p0, mMap)
+            addCircles(p0, radius.toDouble(), mMap)
+            addGeoFence(p0, radius, LocalDateTime.now().toString(),applicationContext)
+
+            //save the geofence in shared preferences
             with(sharedPreferences.edit()) {
                 putFloat("latitude", p0.latitude.toFloat())
                 putFloat("longitude", p0.longitude.toFloat())
@@ -254,79 +294,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
         }
     }
 
-    @SuppressLint("MissingPermission")
-    fun addGeoFence(latLng: LatLng, radius: Float) {
-        val geoFence = geofenceHelperClass.getGeoFence(
-            "First geoFence", latLng, radius, Geofence.GEOFENCE_TRANSITION_DWELL or
-                    Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT
-        )
-        val geoFencingRequest = geoFence?.let { geofenceHelperClass.getGeoFencingRequest(it) }
-        geofencingClient.addGeofences(geoFencingRequest, geofenceHelperClass.getPendingIntents())?.run {
-            addOnSuccessListener {
-                Toast.makeText(
-                    this@MapsActivity, "GeoFence added",
-                    Toast.LENGTH_SHORT
-                )
-                    .show()
-                Log.e("Add Geofence", geoFence?.requestId.toString())
-
-            }
-            addOnFailureListener{
-                val errorMessage = geofenceHelperClass.getErrorCodes(it)
-                Toast.makeText(
-                    this@MapsActivity, errorMessage,
-                    Toast.LENGTH_SHORT
-                )
-                    .show()
-                Log.e(TAG, errorMessage)
-
-            }
-        }
-    }
-
-    private fun showAlertDialogForRadius(p0: LatLng?): Double {
-        var radius1  = 10.0
-        val input = EditText(this@MapsActivity)
-        val lp: LinearLayout.LayoutParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.MATCH_PARENT
-        )
-        input.layoutParams = lp
-        val alertDouble = AlertDialog.Builder(this)
-            .setTitle("Radius of geoFence")
-            .setView(input)
-            .setPositiveButton(
-                "OK"
-            ) { _, _ ->
-                radius1 = input.text.toString().toDouble()
-                handleLongClick(p0)
-            }
-            .setNegativeButton("Ignore") { _, _ ->
-                Toast.makeText(applicationContext, "Taking default radius ", Toast.LENGTH_SHORT)
-                    .show()
-            }
-        alertDouble.show()
-        return radius1
-    }
-
-    fun addMarkers(latLng: LatLng) {
-        val markerOptions = MarkerOptions().position(latLng)
-        mMap.addMarker(markerOptions)
-    }
-
-    fun addCircles(latLng: LatLng, radius: Double) {
-        val circleOptions = CircleOptions()
-            .center(latLng)
-            .radius(radius)
-            .strokeColor(Color.argb(240, 100, 100, 100))
-            .fillColor(Color.argb(50, 100, 0, 100))
-            .strokeWidth(1f)
-        mMap.addCircle(circleOptions)
-    }
-
-    companion object {
-        const val TAG  = "MapsActivity"
-    }
 
 
     override fun onResume() {
@@ -407,5 +374,18 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMapLon
 
     override fun onClick(v: View?) {
         Toast.makeText(applicationContext, "Settings clicked ", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onBackPressed() {
+        supportFragmentManager.beginTransaction().remove(SettingsFragment()).commitNow()
+        if (isFragmentVisible) {
+            fragmentHolder.startAnimation(viewOutAnimation)
+            isFragmentVisible = !isFragmentVisible
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        finish()
     }
 }

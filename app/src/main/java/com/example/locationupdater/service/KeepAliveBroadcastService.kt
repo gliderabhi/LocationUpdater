@@ -65,7 +65,7 @@ class KeepAliveBroadcastService : Service() {
                             NotificationChannel(
                             it,
                             foregroundNotificationChannelName,
-                            NotificationManager.IMPORTANCE_MIN
+                            NotificationManager.IMPORTANCE_HIGH
                         ).also {
                             it.description = foregroundNotificationChannelDescription
                             it.lockscreenVisibility = NotificationCompat.VISIBILITY_PRIVATE

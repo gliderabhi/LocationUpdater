@@ -43,8 +43,7 @@ class SpashScreen : AppCompatActivity() , Animation.AnimationListener, Permissio
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onAnimationEnd(animation: Animation?) {
         getPermissions()
-
-        startActivity(Intent(this, MapsActivity::class.java))
+        startActivity(Intent(this, HelpActivity::class.java))
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)

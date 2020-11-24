@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "310574872965",
+    "firebase_url": "https://locationupdater-39884.firebaseio.com",
+    "project_id": "locationupdater-39884",
+    "storage_bucket": "locationupdater-39884.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:310574872965:android:031b16d7b871e9083decec",
+        "android_client_info": {
+          "package_name": "com.example.locationupdater"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "310574872965-28eitr10c3hf7df785b606r87e6jcu5e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.locationupdater",
+            "certificate_hash": "f77c646eb506b55cb73de1a75f77c3ec6eb2ed27"
+          }
+        },
+        {
+          "client_id": "310574872965-h1fsg9phsdcsgtifhraqie4fr9c9kbj0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCssiN9BZY3mamHJK_r9TYH1VKhAC5Jnb0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "310574872965-h1fsg9phsdcsgtifhraqie4fr9c9kbj0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -24,6 +24,7 @@ object GeoLocationUtil  {
     }
 
 
+
     fun askForLocationPermission(thisActivity: Activity?, requestCode: Int) {
         if (ContextCompat.checkSelfPermission(
                 thisActivity!!,

@@ -24,6 +24,8 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.graphics.Color
+import android.media.AudioAttributes
+import android.net.Uri
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
@@ -38,12 +40,17 @@ class NotificationHelper(base: Context?) : ContextWrapper(base) {
     @RequiresApi(api = Build.VERSION_CODES.O)
 
     private fun createChannels() {
+        val soundUri = Uri.parse("android.resource://com.example.locationupdater/raw/arrays")
+        val audioAttributes = AudioAttributes.Builder()
+            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+            .build()
         val notificationChannel =
             NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH)
         notificationChannel.enableLights(true)
-        notificationChannel.enableVibration(true)
+        notificationChannel.vibrationPattern = longArrayOf(500, 500)
         notificationChannel.description = "this is the description of the channel."
         notificationChannel.lightColor = Color.RED
+        notificationChannel.setSound(soundUri,audioAttributes)
         notificationChannel.lockscreenVisibility = Notification.VISIBILITY_PUBLIC
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(notificationChannel)

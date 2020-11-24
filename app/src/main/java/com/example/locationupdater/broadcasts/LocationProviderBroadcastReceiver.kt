@@ -7,9 +7,11 @@ import android.content.SharedPreferences
 import android.location.LocationManager
 import android.util.Log
 import com.example.locationupdater.activities.MapsActivity
+import com.example.locationupdater.firebase.FirebaseTransactions
 import com.example.locationupdater.utils.NotificationHelper
-import com.example.locationupdater.utils.addGeoFence
+import com.example.locationupdater.utils.extension.addGeoFence
 import com.google.android.gms.maps.model.LatLng
+import java.time.LocalDateTime
 
 class LocationProviderBroadcastReceiver : BroadcastReceiver() {
 
@@ -59,10 +61,10 @@ class LocationProviderBroadcastReceiver : BroadcastReceiver() {
                 )
 
                 //re register the geo-fences
-                val lat = sharedPreferences.getFloat("latitude", 23f)
-                val long = sharedPreferences.getFloat("longitude", 87.5f)
-                addGeoFence(LatLng(lat.toDouble(), long.toDouble()), 20f, context)
-
+                val listFences = FirebaseTransactions.getAllGeoFences()
+                for(fences in listFences) {
+                    addGeoFence(LatLng(fences.lat!!.toDouble(), fences.long!!.toDouble()), fences.radius!!, LocalDateTime.now().toString(), context)
+                }
                 notifiOn = true
                 notifiOff = false
             }

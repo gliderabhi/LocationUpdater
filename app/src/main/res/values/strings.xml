@@ -213,4 +213,10 @@ The terms used in this Privacy Policy have the same meanings as in our Terms and
     <string name="attachment_summary_on">Automatically download attachments for incoming emails
     </string>
     <string name="attachment_summary_off">Only download attachments when manually requested</string>
+    <string name="insert_geoFence">Long press the map to mark the safe locations</string>
+    <string name="radius">Radius of safe area</string>
+    <string name="clearAll">Clear all geofences</string>
+    <string name="prefName">SharedPrefrences</string>
+    <string name="isHintShown">IsHintShown</string>
+    <string name="Showhints">Show hints to use app</string>
 </resources>
